@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="com.apopackhouse.app" version="2.3.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>APO Packhouse</name>
+    <name>OT LifeHacks</name>
     <description>Schedule and Firebase App</description>
     <content src="index.html" />
     <access origin="*" />
