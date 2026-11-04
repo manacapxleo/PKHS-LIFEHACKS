@@ -1,0 +1,658 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Packhouse Life Hack</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f3f5f9;
+    padding: 20px;
+    margin: 0;
+}
+
+.container {
+    max-width: 950px;
+    margin: auto;
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 3px 15px #0001;
+}
+
+h2 {
+    color: #24344d;
+}
+
+.info {
+    background: #edf4ff;
+    padding: 14px;
+    border-radius: 8px;
+    line-height: 1.7;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.entry {
+    background: #f8f9fc;
+    padding: 16px;
+    margin-top: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.entry h3 {
+    margin-top: 0;
+    color: #1769db;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 11px;
+    margin-top: 6px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+input[readonly] {
+    background: #e9edf3;
+    color: #333;
+    font-weight: bold;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    font-weight: bold;
+}
+
+.add {
+    background: #16834a;
+    color: white;
+    margin-top: 18px;
+}
+
+.remove {
+    background: #dc3545;
+    color: white;
+    margin-top: 12px;
+}
+
+.upload {
+    background: #1769db;
+    color: white;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+#status {
+    padding: 12px;
+    margin-top: 15px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+}
+
+.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.shift-info {
+    background: #e9f5ed;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #176b39;
+}
+
+@media(max-width:600px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        padding: 15px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>LIFE HACKS by Leo <3 </h2>
+
+<p>Enter multiple employee overtime schedules with different dates.</p>
+
+
+<div id="entries"></div>
+
+<button class="add" onclick="addEntry()">
+    + ADD OVERTIME ENTRY
+</button>
+
+<button class="upload" id="uploadBtn" onclick="uploadData()">
+    UPLOAD ALL ENTRIES TO FIRESTORE
+</button>
+
+<div id="status"></div>
+
+</div>
+
+<script type="module">
+
+// ==========================================
+// FIREBASE IMPORTS
+// ==========================================
+
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+
+import {
+    getFirestore,
+    doc,
+    updateDoc,
+    arrayUnion
+} from
+"https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+
+// ==========================================
+// FIREBASE CONFIGURATION
+// ==========================================
+
+const firebaseConfig = {
+    apiKey:"AIzaSyA3B1uvaCEhMF7kDN_cnxrNOREdlSBl1t8",
+    authDomain:"apo-pack-overtime-schedule.firebaseapp.com",
+    projectId:"apo-pack-overtime-schedule",
+    storageBucket:"apo-pack-overtime-schedule.firebasestorage.app",
+    messagingSenderId:"55428287155",
+    appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getFirestore(app);
+
+
+// ==========================================
+// FIRESTORE DOCUMENT
+// ==========================================
+
+const overtimeRef = doc(
+    db,
+    "overtime",
+    "shared-log"
+);
+
+
+// ==========================================
+// SHIFT SCHEDULES
+// ==========================================
+
+const schedules = {
+
+    first: {
+        start: "00:00",
+        end: "08:00",
+        label: "First shift"
+    },
+
+    second: {
+        start: "08:00",
+        end: "16:00",
+        label: "Second shift"
+    },
+
+    third: {
+        start: "16:00",
+        end: "00:00",
+        label: "Third shift"
+    }
+
+};
+
+
+// ==========================================
+// GENERATE UNIQUE ID
+// ==========================================
+
+function generateUniqueID() {
+
+    return crypto.randomUUID().replace(/-/g, "");
+
+}
+
+
+// ==========================================
+// ADD NEW ENTRY
+// ==========================================
+
+let entryCount = 0;
+
+window.addEntry = function() {
+
+    entryCount++;
+
+    const div = document.createElement("div");
+
+    div.className = "entry";
+
+    div.innerHTML = `
+
+        <h3>Overtime Entry #${entryCount}</h3>
+
+        <div class="grid">
+
+            <div>
+                <label>Overtime Date</label>
+
+                <input
+                    type="date"
+                    class="date"
+                    required
+                >
+            </div>
+
+            <div>
+                <label>Employee Name</label>
+
+                <input
+                    type="text"
+                    class="employeeName"
+                    placeholder="Employee name"
+                    required
+                >
+            </div>
+
+            <div>
+                <label>Shift Schedule</label>
+
+                <select
+                    class="shift"
+                    onchange="updateShift(this)"
+                >
+
+                    <option value="first">
+                        First Shift
+                    </option>
+
+                    <option value="second" selected>
+                        Second Shift
+                    </option>
+
+                    <option value="third">
+                        Third Shift
+                    </option>
+
+                </select>
+            </div>
+
+            <div>
+                <label>Start Time</label>
+
+                <input
+                    type="text"
+                    class="start"
+                    value="08:00"
+                    readonly
+                >
+            </div>
+
+            <div>
+                <label>End Time</label>
+
+                <input
+                    type="text"
+                    class="end"
+                    value="16:00"
+                    readonly
+                >
+            </div>
+
+            <div>
+                <label>Overtime Hours</label>
+
+                <input
+                    type="number"
+                    class="hours"
+                    value="8"
+                    min="0"
+                    step="0.25"
+                    required
+                >
+            </div>
+
+            <div>
+                <label>Shift Label</label>
+
+                <input
+                    type="text"
+                    class="shiftLabel"
+                    value="Second shift"
+                    readonly
+                >
+            </div>
+
+            <div>
+                <label>Note</label>
+
+                <input
+                    type="text"
+                    class="note"
+                    placeholder="Optional note"
+                >
+            </div>
+
+        </div>
+
+        <div class="shift-info">
+            Shift times are automatically assigned.
+        </div>
+
+        <button
+            class="remove"
+            onclick="removeEntry(this)"
+        >
+            REMOVE ENTRY
+        </button>
+
+    `;
+
+    document.getElementById("entries").appendChild(div);
+
+};
+
+
+// ==========================================
+// UPDATE SHIFT AUTOMATICALLY
+// ==========================================
+
+window.updateShift = function(select) {
+
+    const entry = select.closest(".entry");
+
+    const selected = schedules[select.value];
+
+    entry.querySelector(".start").value =
+        selected.start;
+
+    entry.querySelector(".end").value =
+        selected.end;
+
+    entry.querySelector(".shiftLabel").value =
+        selected.label;
+
+};
+
+
+// ==========================================
+// REMOVE ENTRY
+// ==========================================
+
+window.removeEntry = function(button) {
+
+    button.closest(".entry").remove();
+
+};
+
+
+// ==========================================
+// UPLOAD ALL ENTRIES
+// ==========================================
+
+window.uploadData = async function() {
+
+    const button = document.getElementById("uploadBtn");
+
+    const forms = [
+        ...document.querySelectorAll(".entry")
+    ];
+
+    if (forms.length === 0) {
+
+        showStatus(
+            "Please add at least one overtime entry.",
+            false
+        );
+
+        return;
+
+    }
+
+    const grouped = {};
+
+    try {
+
+        // VALIDATE AND GROUP ENTRIES BY DATE
+
+        for (let i = 0; i < forms.length; i++) {
+
+            const form = forms[i];
+
+            const get = selector =>
+                form.querySelector(selector).value;
+
+            const date = get(".date");
+
+            const employeeName =
+                get(".employeeName").trim();
+
+            const shift = get(".shift");
+
+            const selectedSchedule = schedules[shift];
+
+            const start = selectedSchedule.start;
+
+            const end = selectedSchedule.end;
+
+            const hours = Number(get(".hours"));
+
+            const shiftLabel = selectedSchedule.label;
+
+            const note = get(".note");
+
+            if (
+                !date ||
+                !employeeName ||
+                !Number.isFinite(hours) ||
+                hours <= 0
+            ) {
+
+                throw new Error(
+                    "Please complete all required fields in entry #" +
+                    (i + 1)
+                );
+
+            }
+
+            // CREATE FIRESTORE RECORD
+
+            const record = {
+
+                employeeName: employeeName,
+
+                start: start,
+
+                end: end,
+
+                hours: hours,
+
+                id: generateUniqueID(),
+
+                note: note || "",
+
+                shift: shift,
+
+                shiftLabel: shiftLabel
+
+            };
+
+
+            // GROUP BY DATE
+
+            if (!grouped[date]) {
+
+                grouped[date] = [];
+
+            }
+
+            grouped[date].push(record);
+
+        }
+
+
+    } catch(error) {
+
+        showStatus(
+            error.message,
+            false
+        );
+
+        return;
+
+    }
+
+
+    // DISABLE BUTTON
+
+    button.disabled = true;
+
+    button.textContent = "UPLOADING...";
+
+
+    try {
+
+        // ==================================
+        // FIRESTORE MAP UPDATE
+        // ==================================
+
+        const updates = {};
+
+        for (const [date, records] of Object.entries(grouped)) {
+
+            updates[`entries.${date}`] =
+                arrayUnion(...records);
+
+        }
+
+
+        // SAVE ALL DATE GROUPS
+
+        await updateDoc(
+            overtimeRef,
+            updates
+        );
+
+
+        // ==================================
+        // SUCCESS MESSAGE
+        // ==================================
+
+        let summary = "UPLOAD SUCCESSFUL!\n\n";
+
+        let total = 0;
+
+        for (const [date, records] of Object.entries(grouped)) {
+
+            summary +=
+                date + " : " +
+                records.length +
+                " entries\n";
+
+            total += records.length;
+
+        }
+
+        summary +=
+            "\nTOTAL EMPLOYEES: " + total;
+
+        summary +=
+            "\n\nUnique IDs generated successfully.";
+
+
+        showStatus(
+            summary,
+            true
+        );
+
+
+    } catch(error) {
+
+        showStatus(
+            "FIRESTORE ERROR:\n" + error.message,
+            false
+        );
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+            "UPLOAD ALL ENTRIES TO FIRESTORE";
+
+    }
+
+};
+
+
+// ==========================================
+// STATUS MESSAGE
+// ==========================================
+
+function showStatus(message, success) {
+
+    const status = document.getElementById("status");
+
+    status.textContent = message;
+
+    status.className =
+        success ? "success" : "error";
+
+}
+
+
+// ==========================================
+// INITIAL ENTRY
+// ==========================================
+
+addEntry();
+
+</script>
+
+</body>
+</html>
