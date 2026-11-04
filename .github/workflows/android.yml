@@ -1,1 +1,55 @@
-.github/workflows/android.yml
+name: Build Android APK
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install Cordova
+      run: npm install -g cordova
+
+    - name: Install Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Create Clean Cordova Project & Copy Source
+      run: |
+        # Create a fresh Cordova workspace
+        cordova create my-app com.apopackhouse.app "APO Packhouse"
+        
+        # Move into the workspace
+        cd my-app
+        
+        # Add the android platform
+        cordova platform add android
+        
+        # Replace the default www folder with your repository's actual www or root web files
+        rm -rf www/*
+        cp -r ../www/* www/ 2>/dev/null || true
+        
+        # If your index.html and js are in the root directory instead, copy them directly:
+        cp ../index.html www/ 2>/dev/null || true
+        
+        # Copy config.xml over
+        cp ../config.xml .
+        
+        # Build the debug APK inside the workspace
+        cordova build android --debug
+
+    - name: Upload APK as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: apo-packhouse-apk
+        path: my-app/platforms/android/app/build/outputs/apk/debug/app-debug.apk
